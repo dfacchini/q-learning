@@ -52,6 +52,7 @@ def main():
              Celula(40, -100), Celula(41, -100), Celula(50, 100)]]
 
     criar_trechos(mapa)
+    # Teste
 
     print '\n'
     for areas in mapa:
