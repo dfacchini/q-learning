@@ -35,9 +35,13 @@ def criar_trechos(mapa):
                 mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x+1][y]))
                 mapa[x+1][y].trechos.append(Trecho(mapa[x+1][y], mapa[x][y]))
 
-def aprendizagem():
-   ''' Aplica o calculo para propagação do conhecimento '''
-    pass
+def aprendizagem(trecho):
+    ''' Aplica o calculo para propagação do conhecimento '''
+    aprendizagem = trecho.destino.razao + 0.5 * (max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
+    trecho.recompensa = aprendizagem   
+
+def escolhe_trecho_otimo(celula):
+    return max(celula.trechos, key=lambda x: x.recompensa).destino
 
 def escolhe_trecho(celula, promissores=False):
 
@@ -45,26 +49,43 @@ def escolhe_trecho(celula, promissores=False):
         trecho_promissor = max(celula.trechos, key=lambda x: x.recompensa)
         trechos_iguais = [trecho for trecho in celula.trechos if trecho.recompensa == trecho_promissor.recompensa]
         trecho_escolhido = random.choice(trechos_iguais)
+        aprendizagem(trecho_escolhido)
         return trecho_escolhido.destino
     else:
         trecho_escolhido = random.choice(celula.trechos)
+        aprendizagem(trecho_escolhido)
         return trecho_escolhido.destino
     
 
-def inicia_trajetoria(mapa, celula_robo, celula_objetivo):
-    cont = 0
+def inicia_trajetoria(celula_robo, celula_objetivo):
+
+    trajetoria = []
     while True: 
         chance = random.random()      
-        print chance  
+
+        trajetoria.append(celula_robo)
         celula_robo = escolhe_trecho(celula_robo, chance < 0.7)
 
-        print u'%s = ' % celula_robo.endereco  
-        cont += 1
+        # print u'%s = ' % celula_robo.endereco  
+
         if celula_robo == celula_objetivo:
+            return trajetoria
             break
-    print u'\n Quantidade de passos: %s \n' % cont
 
+    # print u'\n Quantidade de passos: %s \n' % cont
+    # print [t.endereco for t in trajetoria]
 
+def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
+    trajetoria = []
+    while True: 
+        trajetoria.append(celula_robo)
+        celula_robo = escolhe_trecho_otimo(celula_robo)
+
+        # print u'%s = ' % celula_robo.endereco  
+
+        if celula_robo == celula_objetivo:
+            return trajetoria
+            break
 
 def main():
     celula_inicial = Celula(1)
@@ -85,9 +106,7 @@ def main():
              Celula(21, -100), Celula(30, -100), Celula(31, -100),
              Celula(40, -100), Celula(41, -100), celula_final]]
 
-    criar_trechos(mapa)
-    from IPython import embed; embed()
-    inicia_trajetoria(mapa, celula_inicial, celula_final)
+    criar_trechos(mapa)    
 
     print '\n'
     for areas in mapa:
@@ -97,7 +116,13 @@ def main():
         print area + '\n'
     print '\n'
 
+    for i in range(0, 100):
+        inicia_trajetoria(celula_inicial, celula_final)
+
     from IPython import embed; embed()
+    trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
+    print [t.endereco for t in trajetoria]
+    #from IPython import embed; embed()
 
 
 main()
