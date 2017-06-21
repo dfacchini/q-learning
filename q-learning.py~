@@ -37,7 +37,7 @@ def criar_trechos(mapa):
 
 def aprendizagem():
    ''' Aplica o calculo para propagação do conhecimento '''
-    pass
+
 
 def escolhe_trecho(celula, promissores=False):
 
