@@ -2,10 +2,6 @@
 import random
 from itertools import groupby
 
-# TODO
-# Criar estrutura para as recompensas
-# Criar o caminho aleatoriamente
-
 
 class Celula():
     def __init__(self, endereco, razao=-1):
@@ -38,7 +34,7 @@ def criar_trechos(mapa):
 def aprendizagem(trecho):
     ''' Aplica o calculo para propagação do conhecimento '''
     aprendizagem = trecho.destino.razao + 0.5 * (max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
-    trecho.recompensa = aprendizagem   
+    trecho.recompensa = aprendizagem
 
 def escolhe_trecho_otimo(celula):
     return max(celula.trechos, key=lambda x: x.recompensa).destino
@@ -55,33 +51,28 @@ def escolhe_trecho(celula, promissores=False):
         trecho_escolhido = random.choice(celula.trechos)
         aprendizagem(trecho_escolhido)
         return trecho_escolhido.destino
-    
+
 
 def inicia_trajetoria(celula_robo, celula_objetivo):
 
     trajetoria = []
-    while True: 
-        chance = random.random()      
+    while True:
+        chance = random.random()
 
         trajetoria.append(celula_robo)
         celula_robo = escolhe_trecho(celula_robo, chance < 0.7)
 
-        # print u'%s = ' % celula_robo.endereco  
+        # print u'%s = ' % celula_robo.endereco
 
         if celula_robo == celula_objetivo:
             return trajetoria
             break
 
-    # print u'\n Quantidade de passos: %s \n' % cont
-    # print [t.endereco for t in trajetoria]
-
 def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
     trajetoria = []
-    while True: 
+    while True:
         trajetoria.append(celula_robo)
         celula_robo = escolhe_trecho_otimo(celula_robo)
-
-        # print u'%s = ' % celula_robo.endereco  
 
         if celula_robo == celula_objetivo:
             return trajetoria
@@ -106,7 +97,7 @@ def main():
              Celula(21, -100), Celula(30, -100), Celula(31, -100),
              Celula(40, -100), Celula(41, -100), celula_final]]
 
-    criar_trechos(mapa)    
+    criar_trechos(mapa)
 
     print '\n'
     for areas in mapa:
@@ -116,13 +107,12 @@ def main():
         print area + '\n'
     print '\n'
 
-    for i in range(0, 100):
+    for episodio in range(0, 100):
         inicia_trajetoria(celula_inicial, celula_final)
 
-    from IPython import embed; embed()
     trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
     print [t.endereco for t in trajetoria]
-    #from IPython import embed; embed()
+    from IPython import embed; embed()
 
 
 main()
