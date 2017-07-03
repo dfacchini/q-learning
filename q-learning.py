@@ -31,19 +31,26 @@ def criar_trechos(mapa):
                 mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x+1][y]))
                 mapa[x+1][y].trechos.append(Trecho(mapa[x+1][y], mapa[x][y]))
 
+
 def aprendizagem(trecho):
     ''' Aplica o calculo para propagação do conhecimento '''
-    aprendizagem = trecho.destino.razao + 0.5 * (max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
+    aprendizagem = trecho.destino.razao + 0.5 * (
+        max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
     trecho.recompensa = aprendizagem
+
 
 def escolhe_trecho_otimo(celula):
     return max(celula.trechos, key=lambda x: x.recompensa).destino
+
 
 def escolhe_trecho(celula, promissores=False):
 
     if promissores:
         trecho_promissor = max(celula.trechos, key=lambda x: x.recompensa)
-        trechos_iguais = [trecho for trecho in celula.trechos if trecho.recompensa == trecho_promissor.recompensa]
+        trechos_iguais = [
+            trecho for trecho in celula.trechos
+            if trecho.recompensa == trecho_promissor.recompensa
+        ]
         trecho_escolhido = random.choice(trechos_iguais)
         aprendizagem(trecho_escolhido)
         return trecho_escolhido.destino
@@ -68,6 +75,7 @@ def inicia_trajetoria(celula_robo, celula_objetivo):
             return trajetoria
             break
 
+
 def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
     trajetoria = []
     while True:
@@ -77,6 +85,7 @@ def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
         if celula_robo == celula_objetivo:
             return trajetoria
             break
+
 
 def main():
     celula_inicial = Celula(1)
@@ -93,9 +102,10 @@ def main():
             [Celula(2), Celula(9), Celula(12), Celula(19), Celula(22),
              Celula(29), Celula(32), Celula(39), Celula(42), Celula(49)],
 
-            [celula_inicial, Celula(10, -100), Celula(11, -100), Celula(20, -100),
-             Celula(21, -100), Celula(30, -100), Celula(31, -100),
-             Celula(40, -100), Celula(41, -100), celula_final]]
+            [celula_inicial, Celula(10, -100), Celula(11, -100),
+             Celula(20, -100), Celula(21, -100), Celula(30, -100),
+             Celula(31, -100), Celula(40, -100), Celula(41, -100),
+             celula_final]]
 
     criar_trechos(mapa)
 
@@ -112,7 +122,6 @@ def main():
 
     trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
     print [t.endereco for t in trajetoria]
-    from IPython import embed; embed()
 
 
 main()
