@@ -120,17 +120,8 @@ def main():
     for episodio in range(0, 100):
         inicia_trajetoria(celula_inicial, celula_final)
 
-    print 'Tabela Q \n\n'
-    for areas in mapa:
-        for celula in areas:
-            for trecho in celula.trechos:
-                print '%s - %s = %s\n' % (
-                    trecho.origem.endereco,
-                    trecho.destino.endereco,
-                    trecho.recompensa)
-
     trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
     print [t.endereco for t in trajetoria]
 
 
-main()
+# main()

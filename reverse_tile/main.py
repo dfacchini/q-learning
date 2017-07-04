@@ -18,6 +18,147 @@ from copy import deepcopy
 from functools import partial
 from os import sep
 import random
+import main
+
+
+# -*- coding: utf-8 -*-
+import random
+from itertools import groupby
+
+
+class Celula():
+    def __init__(self, endereco, razao=-1):
+        self.endereco = endereco
+        self.trechos = []
+        self.razao = razao
+
+    def __unicode__(self):
+        return self.endereco
+
+
+class Trecho():
+    def __init__(self, origem, destino):
+        self.destino = destino
+        self.origem = origem
+        self.recompensa = 0
+
+
+def criar_trechos(mapa):
+    for x in range(0, len(mapa)):
+        for y in range(0, len(mapa[x])):
+            if y < len(mapa[x]) - 1:
+                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x][y + 1]))
+                mapa[x][y+1].trechos.append(Trecho(mapa[x][y+1], mapa[x][y]))
+
+            if x < len(mapa) - 1:
+                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x+1][y]))
+                mapa[x+1][y].trechos.append(Trecho(mapa[x+1][y], mapa[x][y]))
+
+
+def aprendizagem(trecho):
+    ''' Aplica o calculo para propagação do conhecimento '''
+    aprendizagem = trecho.destino.razao + 0.5 * (
+        max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
+    trecho.recompensa = aprendizagem
+
+
+def escolhe_trecho_otimo(celula):
+    return max(celula.trechos, key=lambda x: x.recompensa).destino
+
+
+def escolhe_trecho(celula, promissores=False):
+
+    if promissores:
+        trecho_promissor = max(celula.trechos, key=lambda x: x.recompensa)
+        trechos_iguais = [
+            trecho for trecho in celula.trechos
+            if trecho.recompensa == trecho_promissor.recompensa
+        ]
+        trecho_escolhido = random.choice(trechos_iguais)
+        aprendizagem(trecho_escolhido)
+        return trecho_escolhido.destino
+    else:
+        trecho_escolhido = random.choice(celula.trechos)
+        aprendizagem(trecho_escolhido)
+        return trecho_escolhido.destino
+
+
+def inicia_trajetoria(celula_robo, celula_objetivo):
+
+    trajetoria = []
+    while True:
+        chance = random.random()
+
+        trajetoria.append(celula_robo)
+        celula_robo = escolhe_trecho(celula_robo, chance < 0.7)
+
+        # print u'%s = ' % celula_robo.endereco
+
+        if celula_robo == celula_objetivo:
+            return trajetoria
+            break
+
+
+def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
+    trajetoria = []
+    while True:
+        trajetoria.append(celula_robo)
+        celula_robo = escolhe_trecho_otimo(celula_robo)
+
+        if celula_robo == celula_objetivo:
+            return trajetoria
+            break
+
+
+def main(*args, **kwargs):
+    celula_inicial = Celula(1)
+    celula_final = Celula(50, 100)
+    mapa = [[Celula(5), Celula(6), Celula(15), Celula(16), Celula(25),
+             Celula(26), Celula(35), Celula(36), Celula(45), Celula(46)],
+
+            [Celula(4), Celula(7), Celula(14), Celula(17), Celula(24),
+             Celula(27), Celula(34), Celula(37), Celula(44), Celula(47)],
+
+            [Celula(3), Celula(8), Celula(13), Celula(18), Celula(23),
+             Celula(28), Celula(33), Celula(38), Celula(43), Celula(48)],
+
+            [Celula(2), Celula(9), Celula(12), Celula(19), Celula(22),
+             Celula(29), Celula(32), Celula(39), Celula(42), Celula(49)],
+
+            [celula_inicial, Celula(10, -100), Celula(11, -100),
+             Celula(20, -100), Celula(21, -100), Celula(30, -100),
+             Celula(31, -100), Celula(40, -100), Celula(41, -100),
+             celula_final]]
+
+    criar_trechos(mapa)
+
+    print '\n'
+    for areas in mapa:
+        area = ''
+        for celula in areas:
+            area += '%s ' % celula.endereco
+        print area + '\n'
+    print '\n'
+
+    for episodio in range(0, 100):
+        inicia_trajetoria(celula_inicial, celula_final)
+
+    for areas in mapa:
+        for celula in areas:
+            for trecho in celula.trechos:
+                label = Label(text='%s - %s = %s' % (
+                    trecho.origem, trecho.destino, trecho.recompensa))
+                args[0].parent.parent.layout_2.add_widget(label)
+
+
+    from IPython import embed; embed()
+
+    trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
+    print [t.endereco for t in trajetoria]
+
+
+# main()
+
 
 
 #todo : better locking, lock when it is flipping and when is computer turn
@@ -25,7 +166,7 @@ import random
 #todo : show hint
 #todo : check if resume game not faulty
 
-#Window.size=(320,200)
+Window.size=(800, 600)
 
 TEXTURES = {}
 TEXTURES['empty'] = Image(source="image%sempty.png" % sep).texture
@@ -54,15 +195,6 @@ class tile(Image):
             self.caller_instance.play(int(self.rev_x),int(self.rev_y))
             return True
 
-    def display_flipping(self,to_color):
-        self.flip_state = 0
-        if to_color == 'X':
-            self.fip_seq=['white1','white2','white3','white4','white5','black5','black4','black3','black2','black1','black0']
-        else:
-            self.fip_seq=['black1','black2','black3','black4','black5','white5','white4','white3','white2','white1','white0']
-        Clock.schedule_interval(self.my_callback, 0.05)
-        tile.current_flipping +=1
-
     def my_callback(self,dt):
         if len(self.fip_seq) == self.flip_state:
             self.flip_state -=1
@@ -82,8 +214,6 @@ class tile(Image):
                 self.texture = TEXTURES['black0']
             else:
                 self.texture = TEXTURES['empty']
-        else:
-            self.display_flipping(s_texture)
 
 def divide_screen():
     x = Window.width
@@ -100,16 +230,10 @@ def divide_screen():
 class Play_ground(Widget):
     b_wait = False
 
-    end_of_impact =[]
-
     def __init__(self, **kwargs):
         super(Play_ground, self).__init__(**kwargs) #constructeur du parent
         self.caller_instance = kwargs['caller_instance']
-        resume = self.caller_instance.config.get('section1', 'resume')
-        if len(resume) == 64:
-            self.resume = resume.replace('_',' ')
-        else:
-            self.resume = ''
+        self.resume = ''
 
         self.new_grid()
 
@@ -117,23 +241,24 @@ class Play_ground(Widget):
         self.resume = ''
         self.new_grid()
 
-    def on_resize(width,height):
-        pass
-
     def new_grid(self):
         grid_width,menu_width = divide_screen()
 
-        # logic grid
-        self.player_turn=0
-        self.player0= 'O'
-        self.player0_type='human'
-        self.player1= 'X'
-        self.player1_type='computer'
-
         self.player ='O'
-        self.adversary ='X'
 
-        self.grid = [[' ' for x in xrange(8)] for x in xrange(8)]
+        self.grid = [[' ' for x in xrange(50)] for x in xrange(50)]
+        self.grid[1][4]='X'
+        self.grid[2][4]='X'
+        self.grid[3][4]='X'
+        self.grid[4][4]='X'
+        self.grid[5][4]='X'
+        self.grid[6][4]='X'
+        self.grid[7][4]='X'
+        self.grid[8][4]='X'
+
+        # self.grid[4][4]='O'
+        # self.grid[3][4]='X'
+        # self.grid[4][3]='X'
 
         # if self.resume == '':
         #     self.grid[3][3]='O'
@@ -148,51 +273,42 @@ class Play_ground(Widget):
         #             idx += 1
         self.previous_grid = deepcopy(self.grid)
 
-        self.label_score = Label()
-        self.display_score()
-
+        self.label_score = Label(text='Tabela Q')
 
         # graphic grid
         self.clear_widgets()
-        self.graphical_grid = GridLayout(cols=8,size=(grid_width,grid_width))
-        for y in range(0,8):
-            for x in range(0,8):
+        self.graphical_grid = GridLayout(
+            cols=10, size=(grid_width, grid_width/2), x=0+10, y=grid_width/2-10)
+        for y in range(0,5):
+            for x in range(0,10):
                 tiloun = tile(rev_x = x, rev_y =y, rev_caller = self,
                               rev_content = self.grid[x][y])
                 self.graphical_grid.add_widget(tiloun)
 
+
+        # from IPython import embed; embed()
+
         self.add_widget(self.graphical_grid)
         #control panel
-        layout = BoxLayout(orientation='vertical',
-                  x=grid_width,y=Window.height/2,width = menu_width
-                           ) #,width=40,pos_hint={'left':0.9})
+        self.layout = BoxLayout(orientation='vertical',
+                  x=grid_width+15,y=grid_width-50,width = menu_width-30, height=40
+                           )
 
-        btn1 = Button(text='New')
-        btn1.bind(on_press=self.new_game)
+        self.layout_2 = BoxLayout(orientation='horizontal',
+                  x=0,y=300-100, width = Window.width
+                           )
 
-        self.difficulty = self.caller_instance.config.get('section1', 'difficulty')
-
-        btn3 = Button(text=self.difficulty)
-
-        # btn3.bind(on_press=self.toggle_difficulty)
-
-        layout.add_widget(Label(text='Powered by Kivy'))
-        layout.add_widget(btn1)
-        layout.add_widget(btn3)
-        layout.add_widget(self.label_score)
-        self.add_widget(layout)
+        btn1 = Button(text='Iniciar', size=(50,50))
+        btn1.bind(on_press=main)
+        self.layout.add_widget(btn1)
+        self.layout_2.add_widget(self.label_score)
+        self.add_widget(self.layout)
+        self.add_widget(self.layout_2)
 
     def display(self):
         for child in self.graphical_grid.children:
             if self.grid[int(child.rev_x)][int(child.rev_y)] != self.previous_grid[int(child.rev_x)][int(child.rev_y)]:
                 child.toggle_texture(self.grid[int(child.rev_x)][int(child.rev_y)],self.previous_grid[int(child.rev_x)][int(child.rev_y)])
-
-    def hint_grid(self):
-        for y in range(0,8):
-            for x in range(0,8):
-                if self.grid[x][y] <>' ':
-                    continue
-
 
     def in_grid_boundary(self,x,y):
         if x<0 or x>7 or y<0 or y>7:
@@ -203,81 +319,6 @@ class Play_ground(Widget):
 
         self.previous_grid = deepcopy(self.grid)
         self.grid[x][y] = self.player
-
-        for coord in self.end_of_impact:
-            xe = coord[0]
-            ye = coord[1]
-            vx = x - xe
-            vy = y - ye
-
-            if vx <> 0 :
-                vx = int(vx/fabs(vx))
-            if vy <> 0 :
-                vy = int(vy/fabs(vy))
-
-            for n in range(0,8):
-                xn = xe +n*vx
-                yn = ye +n*vy
-                if xn == x and yn ==y :
-                    break
-                self.grid[xn][yn] = self.player
-
-
-
-
-    def display_score(self):
-        score = {'O':0,'X':0,' ':0}
-        for y in range(0,8):
-            for x in range(0,8):
-                score[self.grid[x][y]] += 1
-
-        self.label_score.text='Score %i-%i' % ( score['O'],score['X'])
-
-    # self.end_of_impact contains all impacts for currently tested move
-    # self.end_of_impact is cleared for each tested move
-    def calcul_impact_sum(self):
-        impact_sum = 0
-        for coord in self.end_of_impact:
-            impact_sum += coord[2]
-        return impact_sum
-
-    def do_not_offer_corner(self,moves):
-        # probleme position identique existant plusieurs fois
-        # parcours et suppression en cours dans le meme tableau
-        move_cop = deepcopy(moves)
-        badpos = [(1,0),(1,1),(0,1),(6,0),(6,1),(7,1),(0,6),(1,6),(1,7),(6,6),(7,6),(6,7)]
-        for move in moves:
-            if move in badpos:
-                move_cop.remove(move)
-
-        if len(move_cop) == 0:      #if no choices left
-            return moves
-
-        return move_cop
-
-    def end_of_game(self):
-        btn_ok = Button(text='Ok')
-
-        self.popup = Popup(title='End of game',content=btn_ok, auto_dismiss=False,
-                       size_hint=(None, None), size=(Window.width/2,Window.height/2))
-        btn_ok.bind(on_press=self.closeback)
-
-        self.popup.open()
-
-    def popup_pass_turn(self):
-        btn_ok = Button(text='Ok')
-        popup = Popup(title='You have to pass your turn' ,content=btn_ok, auto_dismiss=False,
-                      size_hint=(None, None), size=(Window.width/2,Window.height/2))
-
-        if self.player == 'X':
-            popup.title = 'Computer has to pass turn'
-            Clock.schedule_once(popup.dismiss, 3)
-
-        btn_ok.bind(on_press=popup.dismiss)
-        popup.open()
-
-    def closeback(self,btn_instance):
-        self.popup.dismiss()
 
     def play(self,x,y):
 
@@ -290,35 +331,25 @@ class Play_ground(Widget):
         #display logical grid
         self.display()
 
-        self.display_score()
-
-        #trigger timer to wait until display is refreshed
-        self.wait_for_display()
-
-    def wait_for_display(self):
-        self.b_wait = True
-        Clock.schedule_interval(self.continue_game, 0.1)
-
 
 class MyApp(App):
-    def build_config(self, config):
-        config.setdefaults('section1', {'difficulty': 'easy','resume':''})
+    # def build_config(self, config):
+    #     config.setdefaults('section1', {'difficulty': 'easy','resume':''})
 
-    def on_stop(self):
-        resume = ''
-        for y in range(0,8):
-            for x in range(0,8):
-                resume += self.game.grid[y][x]
-        resume = resume.replace(' ','_')
-        self.config.set('section1', 'resume', resume)
-        self.config.write()
+    # def on_stop(self):
+    #     resume = ''
+    #     for y in range(0,8):
+    #         for x in range(0,8):
+    #             resume += self.game.grid[y][x]
+    #     resume = resume.replace(' ','_')
+    #     self.config.set('section1', 'resume', resume)
+    #     self.config.write()
 
 
 
     def build(self):
-        config = self.config        #config voir config parser
         self.game = Play_ground(caller_instance= self)
         return self.game
 
-if __name__ in ( '__main__','__android__'): # au lieu de == '__main__'  nécessite pour fonctionner avec le kivy launcher !!!
+if __name__ in ( '__main__'):
     MyApp().run()
