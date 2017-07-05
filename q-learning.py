@@ -1,63 +1,64 @@
 # -*- coding: utf-8 -*-
 import random
+import datetime
 from itertools import groupby
 
 
 class Celula():
     def __init__(self, endereco, razao=-1):
         self.endereco = endereco
-        self.trechos = []
+        self.estados = []
         self.razao = razao
 
     def __unicode__(self):
         return self.endereco
 
 
-class Trecho():
+class Estado():
     def __init__(self, origem, destino):
         self.destino = destino
         self.origem = origem
         self.recompensa = 0
 
 
-def criar_trechos(mapa):
+def criar_estados(mapa):
     for x in range(0, len(mapa)):
         for y in range(0, len(mapa[x])):
             if y < len(mapa[x]) - 1:
-                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x][y + 1]))
-                mapa[x][y+1].trechos.append(Trecho(mapa[x][y+1], mapa[x][y]))
+                mapa[x][y].estados.append(Estado(mapa[x][y], mapa[x][y + 1]))
+                mapa[x][y+1].estados.append(Estado(mapa[x][y+1], mapa[x][y]))
 
             if x < len(mapa) - 1:
-                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x+1][y]))
-                mapa[x+1][y].trechos.append(Trecho(mapa[x+1][y], mapa[x][y]))
+                mapa[x][y].estados.append(Estado(mapa[x][y], mapa[x+1][y]))
+                mapa[x+1][y].estados.append(Estado(mapa[x+1][y], mapa[x][y]))
 
 
-def aprendizagem(trecho):
+def aprendizagem(estado):
     ''' Aplica o calculo para propagação do conhecimento '''
-    aprendizagem = trecho.destino.razao + 0.5 * (
-        max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
-    trecho.recompensa = aprendizagem
+    aprendizagem = estado.destino.razao + 0.5 * (
+        max(estado.destino.estados, key=lambda x: x.recompensa).recompensa)
+    estado.recompensa = aprendizagem
 
 
-def escolhe_trecho_otimo(celula):
-    return max(celula.trechos, key=lambda x: x.recompensa).destino
+def escolhe_estado_otimo(celula):
+    return max(celula.estados, key=lambda x: x.recompensa).destino
 
 
-def escolhe_trecho(celula, promissores=False):
+def escolhe_estado(celula, promissores=False):
 
     if promissores:
-        trecho_promissor = max(celula.trechos, key=lambda x: x.recompensa)
-        trechos_iguais = [
-            trecho for trecho in celula.trechos
-            if trecho.recompensa == trecho_promissor.recompensa
+        estado_promissor = max(celula.estados, key=lambda x: x.recompensa)
+        estados_iguais = [
+            estado for estado in celula.estados
+            if estado.recompensa == estado_promissor.recompensa
         ]
-        trecho_escolhido = random.choice(trechos_iguais)
-        aprendizagem(trecho_escolhido)
-        return trecho_escolhido.destino
+        estado_escolhido = random.choice(estados_iguais)
+        aprendizagem(estado_escolhido)
+        return estado_escolhido.destino
     else:
-        trecho_escolhido = random.choice(celula.trechos)
-        aprendizagem(trecho_escolhido)
-        return trecho_escolhido.destino
+        estado_escolhido = random.choice(celula.estados)
+        aprendizagem(estado_escolhido)
+        return estado_escolhido.destino
 
 
 def inicia_trajetoria(celula_robo, celula_objetivo):
@@ -67,7 +68,7 @@ def inicia_trajetoria(celula_robo, celula_objetivo):
         chance = random.random()
 
         trajetoria.append(celula_robo)
-        celula_robo = escolhe_trecho(celula_robo, chance < 0.7)
+        celula_robo = escolhe_estado(celula_robo, chance < 0.7)
 
         # print u'%s = ' % celula_robo.endereco
 
@@ -80,9 +81,10 @@ def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
     trajetoria = []
     while True:
         trajetoria.append(celula_robo)
-        celula_robo = escolhe_trecho_otimo(celula_robo)
+        celula_robo = escolhe_estado_otimo(celula_robo)
 
         if celula_robo == celula_objetivo:
+            trajetoria.append(celula_objetivo)
             return trajetoria
             break
 
@@ -107,30 +109,62 @@ def main():
              Celula(31, -100), Celula(40, -100), Celula(41, -100),
              celula_final]]
 
-    criar_trechos(mapa)
+    criar_estados(mapa)
 
     print '\n'
     for areas in mapa:
         area = ''
         for celula in areas:
-            area += '%s ' % celula.endereco
+            if len(str(celula.endereco)) == 2:
+                area += '%s ' % celula.endereco
+            else:
+                area += '%s  ' % celula.endereco
         print area + '\n'
     print '\n'
 
-    for episodio in range(0, 100):
-        inicia_trajetoria(celula_inicial, celula_final)
+    t = datetime.datetime.now()
+    arquivo = open("result_%s.txt" % t, "wb")
 
-    print 'Tabela Q \n\n'
+    for episodio in range(0, 50):
+        trajetoria = inicia_trajetoria(celula_inicial, celula_final)
+	print 'Passos ep. %s' % len(trajetoria)
+    #arquivo.write(str([t.endereco for t in trajetoria]))
+
+    arquivo.write('\n Tabela Q \n\n')
+    print '\n Tabela Q \n\n'
     for areas in mapa:
         for celula in areas:
-            for trecho in celula.trechos:
-                print '%s - %s = %s\n' % (
-                    trecho.origem.endereco,
-                    trecho.destino.endereco,
-                    trecho.recompensa)
+            for estado in celula.estados:
+                if len(str(estado.origem.endereco)) == 2:
+                    origem = 'Origem(%s) ' % estado.origem.endereco
+                else:
+                    origem = 'Origem(%s)  ' % estado.origem.endereco
+
+                resultado = '%s| Razão(%s) = %s\n' % (
+                    origem,
+                    estado.destino.endereco,
+                    estado.recompensa)
+                print resultado
+                arquivo.write(resultado);
+
+    arquivo.close()
 
     trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
     print [t.endereco for t in trajetoria]
+
+    print '\n'
+    for areas in mapa:
+        area = ''
+        for celula in areas:
+            if celula in trajetoria:
+                area += 'x  '
+            else:
+                if len(str(celula.endereco)) == 2:
+                    area += '%s ' % celula.endereco
+                else:
+                    area += '%s  ' % celula.endereco
+        print area + '\n'
+    print '\n'
 
 
 main()
