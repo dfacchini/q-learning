@@ -21,6 +21,9 @@ class Acao():
 
 
 def criar_acoes(mapa):
+    '''
+    Mapeia as ações possíveis entre os estados
+    '''
     for x in range(0, len(mapa)):
         for y in range(0, len(mapa[x])):
             if y < len(mapa[x]) - 1:
@@ -44,7 +47,10 @@ def escolhe_acao_otima(estado):
 
 
 def escolhe_acao(estado, promissores=False):
-
+    '''
+    Escolhe entre as ações possíveis, levando em consideração entre as
+    recompensas maiores ou somente aleatoriamente
+    '''
     if promissores:
         acao_promissora = max(estado.acoes, key=lambda x: x.recompensa)
         acoes_iguais = [
@@ -61,7 +67,7 @@ def escolhe_acao(estado, promissores=False):
 
 
 def inicia_trajetoria(estado_robo, estado_objetivo):
-
+    ''' Cria um episódio, tendo como condição de parada o estado objetivo '''
     trajetoria = []
     while True:
         chance = random.random()
@@ -75,6 +81,10 @@ def inicia_trajetoria(estado_robo, estado_objetivo):
 
 
 def inicia_trajetoria_otima(estado_robo, estado_objetivo):
+    '''
+    Utiliza a Tabela-Q gerada na fase de aprendizagem para definir o
+    conjunto de estados ótimos.
+    '''
     trajetoria = []
     while True:
         trajetoria.append(estado_robo)
@@ -87,8 +97,13 @@ def inicia_trajetoria_otima(estado_robo, estado_objetivo):
 
 
 def main():
+    '''
+    Define o território com seus obstáculos,
+    faz as chamadas para aprendizagem e encontra a politica ótima por final.
+    '''
     estado_inicial = Estado(1)
     estado_final = Estado(50, 100)
+
     mapa = [[Estado(5), Estado(6), Estado(15), Estado(16), Estado(25),
              Estado(26), Estado(35), Estado(36), Estado(45), Estado(46)],
 
@@ -122,7 +137,7 @@ def main():
     t = datetime.datetime.now()
     arquivo = open("result_%s.txt" % t, "wb")
 
-    for episodio in range(0, 50):
+    for episodio in range(0, 100):
         trajetoria = inicia_trajetoria(estado_inicial, estado_final)
         print 'Passos ep. %s' % len(trajetoria)
 
@@ -149,26 +164,31 @@ def main():
                 print resultado
                 arquivo.write(resultado)
 
-    arquivo.close()
-
     trajetoria = inicia_trajetoria_otima(estado_inicial, estado_final)
 
     print u'\n\n Política Ótima(Conjunto de estados) \n'
+    arquivo.write('\n\n Política Ótima(Conjunto de estados) \n')
+    arquivo.write(
+        '[' + ' '.join([str(tr.endereco) for tr in trajetoria]) + ']')
     print [tr.endereco for tr in trajetoria]
 
+    arquivo.write('\n\n')
     print '\n'
     for areas in mapa:
         area = ''
         for estado in areas:
             if estado in trajetoria:
                 area += 'x  '
+            elif estado.razao == -100:
+                area += 'O  '
             else:
                 if len(str(estado.endereco)) == 2:
                     area += '%s ' % estado.endereco
                 else:
                     area += '%s  ' % estado.endereco
         print area + '\n'
+        arquivo.write(area + '\n')
     print '\n'
-
+    arquivo.close()
 
 main()
