@@ -1,118 +1,194 @@
 # -*- coding: utf-8 -*-
 import random
-from itertools import groupby
+import datetime
 
 
-class Celula():
+class Estado():
     def __init__(self, endereco, razao=-1):
         self.endereco = endereco
-        self.trechos = []
+        self.acoes = []
         self.razao = razao
 
     def __unicode__(self):
         return self.endereco
 
 
-class Trecho():
+class Acao():
     def __init__(self, origem, destino):
         self.destino = destino
         self.origem = origem
         self.recompensa = 0
 
 
-def criar_trechos(mapa):
+def criar_acoes(mapa):
+    '''
+    Mapeia as ações possíveis entre os estados
+    '''
     for x in range(0, len(mapa)):
         for y in range(0, len(mapa[x])):
             if y < len(mapa[x]) - 1:
-                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x][y + 1]))
-                mapa[x][y+1].trechos.append(Trecho(mapa[x][y+1], mapa[x][y]))
+                mapa[x][y].acoes.append(Acao(mapa[x][y], mapa[x][y + 1]))
+                mapa[x][y+1].acoes.append(Acao(mapa[x][y+1], mapa[x][y]))
 
             if x < len(mapa) - 1:
-                mapa[x][y].trechos.append(Trecho(mapa[x][y], mapa[x+1][y]))
-                mapa[x+1][y].trechos.append(Trecho(mapa[x+1][y], mapa[x][y]))
+                mapa[x][y].acoes.append(Acao(mapa[x][y], mapa[x+1][y]))
+                mapa[x+1][y].acoes.append(Acao(mapa[x+1][y], mapa[x][y]))
 
-def aprendizagem(trecho):
+
+def aprendizagem(acao):
     ''' Aplica o calculo para propagação do conhecimento '''
-    aprendizagem = trecho.destino.razao + 0.5 * (max(trecho.destino.trechos, key=lambda x: x.recompensa).recompensa)
-    trecho.recompensa = aprendizagem
+    aprendizagem = acao.destino.razao + 0.5 * (
+        max(acao.destino.acoes, key=lambda x: x.recompensa).recompensa)
+    acao.recompensa = aprendizagem
 
-def escolhe_trecho_otimo(celula):
-    return max(celula.trechos, key=lambda x: x.recompensa).destino
 
-def escolhe_trecho(celula, promissores=False):
+def escolhe_acao_otima(estado):
+    return max(estado.acoes, key=lambda x: x.recompensa).destino
 
+
+def escolhe_acao(estado, promissores=False):
+    '''
+    Escolhe entre as ações possíveis, levando em consideração entre as
+    recompensas maiores ou somente aleatoriamente
+    '''
     if promissores:
-        trecho_promissor = max(celula.trechos, key=lambda x: x.recompensa)
-        trechos_iguais = [trecho for trecho in celula.trechos if trecho.recompensa == trecho_promissor.recompensa]
-        trecho_escolhido = random.choice(trechos_iguais)
-        aprendizagem(trecho_escolhido)
-        return trecho_escolhido.destino
+        acao_promissora = max(estado.acoes, key=lambda x: x.recompensa)
+        acoes_iguais = [
+            acao for acao in estado.acoes
+            if acao.recompensa == acao_promissora.recompensa
+        ]
+        acao_escolhida = random.choice(acoes_iguais)
+        aprendizagem(acao_escolhida)
+        return acao_escolhida.destino
     else:
-        trecho_escolhido = random.choice(celula.trechos)
-        aprendizagem(trecho_escolhido)
-        return trecho_escolhido.destino
+        acao_escolhida = random.choice(estado.acoes)
+        aprendizagem(acao_escolhida)
+        return acao_escolhida.destino
 
 
-def inicia_trajetoria(celula_robo, celula_objetivo):
-
+def inicia_trajetoria(estado_robo, estado_objetivo):
+    ''' Cria um episódio, tendo como condição de parada o estado objetivo '''
     trajetoria = []
     while True:
         chance = random.random()
 
-        trajetoria.append(celula_robo)
-        celula_robo = escolhe_trecho(celula_robo, chance < 0.7)
+        trajetoria.append(estado_robo)
+        estado_robo = escolhe_acao(estado_robo, chance < 0.7)
 
-        # print u'%s = ' % celula_robo.endereco
-
-        if celula_robo == celula_objetivo:
+        if estado_robo == estado_objetivo:
             return trajetoria
             break
 
-def inicia_trajetoria_otimo(celula_robo, celula_objetivo):
+
+def inicia_trajetoria_otima(estado_robo, estado_objetivo):
+    '''
+    Utiliza a Tabela-Q gerada na fase de aprendizagem para definir o
+    conjunto de estados ótimos.
+    '''
     trajetoria = []
     while True:
-        trajetoria.append(celula_robo)
-        celula_robo = escolhe_trecho_otimo(celula_robo)
+        trajetoria.append(estado_robo)
+        estado_robo = escolhe_acao_otima(estado_robo)
 
-        if celula_robo == celula_objetivo:
+        if estado_robo == estado_objetivo:
+            trajetoria.append(estado_objetivo)
             return trajetoria
             break
 
+
 def main():
-    celula_inicial = Celula(1)
-    celula_final = Celula(50, 100)
-    mapa = [[Celula(5), Celula(6), Celula(15), Celula(16), Celula(25),
-             Celula(26), Celula(35), Celula(36), Celula(45), Celula(46)],
+    '''
+    Define o território com seus obstáculos,
+    faz as chamadas para aprendizagem e encontra a politica ótima por final.
+    '''
+    estado_inicial = Estado(1)
+    estado_final = Estado(50, 100)
 
-            [Celula(4), Celula(7), Celula(14), Celula(17), Celula(24),
-             Celula(27), Celula(34), Celula(37), Celula(44), Celula(47)],
+    mapa = [[Estado(5), Estado(6), Estado(15), Estado(16), Estado(25),
+             Estado(26), Estado(35), Estado(36), Estado(45), Estado(46)],
 
-            [Celula(3), Celula(8), Celula(13), Celula(18), Celula(23),
-             Celula(28), Celula(33), Celula(38), Celula(43), Celula(48)],
+            [Estado(4), Estado(7), Estado(14), Estado(17), Estado(24),
+             Estado(27), Estado(34), Estado(37), Estado(44), Estado(47)],
 
-            [Celula(2), Celula(9), Celula(12), Celula(19), Celula(22),
-             Celula(29), Celula(32), Celula(39), Celula(42), Celula(49)],
+            [Estado(3), Estado(8), Estado(13), Estado(18), Estado(23),
+             Estado(28), Estado(33), Estado(38), Estado(43), Estado(48)],
 
-            [celula_inicial, Celula(10, -100), Celula(11, -100), Celula(20, -100),
-             Celula(21, -100), Celula(30, -100), Celula(31, -100),
-             Celula(40, -100), Celula(41, -100), celula_final]]
+            [Estado(2), Estado(9), Estado(12), Estado(19), Estado(22),
+             Estado(29), Estado(32), Estado(39), Estado(42), Estado(49)],
 
-    criar_trechos(mapa)
+            [estado_inicial, Estado(10, -100), Estado(11, -100),
+             Estado(20, -100), Estado(21, -100), Estado(30, -100),
+             Estado(31, -100), Estado(40, -100), Estado(41, -100),
+             estado_final]]
+
+    criar_acoes(mapa)
 
     print '\n'
     for areas in mapa:
         area = ''
-        for celula in areas:
-            area += '%s ' % celula.endereco
+        for estado in areas:
+            if len(str(estado.endereco)) == 2:
+                area += '%s ' % estado.endereco
+            else:
+                area += '%s  ' % estado.endereco
         print area + '\n'
     print '\n'
 
+    t = datetime.datetime.now()
+    arquivo = open("result_%s.txt" % t, "wb")
+
     for episodio in range(0, 100):
-        inicia_trajetoria(celula_inicial, celula_final)
+        trajetoria = inicia_trajetoria(estado_inicial, estado_final)
+        print 'Passos ep. %s' % len(trajetoria)
 
-    trajetoria = inicia_trajetoria_otimo(celula_inicial, celula_final)
-    print [t.endereco for t in trajetoria]
-    from IPython import embed; embed()
+    arquivo.write('\n Tabela Q \n\n')
+    print '\n Tabela Q(Ações) \n\n'
 
+    for areas in mapa:
+        for estado in areas:
+            for acao in estado.acoes:
+                if len(str(acao.origem.endereco)) == 2:
+                    origem = 'Origem(%s) ' % acao.origem.endereco
+                else:
+                    origem = 'Origem(%s)  ' % acao.origem.endereco
+
+                if len(str(acao.destino.endereco)) == 2:
+                    destino = 'Destino(%s) ' % acao.destino.endereco
+                else:
+                    destino = 'Destino(%s)  ' % acao.destino.endereco
+
+                resultado = '%s| %s = %s\n' % (
+                    origem,
+                    destino,
+                    acao.recompensa)
+                print resultado
+                arquivo.write(resultado)
+
+    trajetoria = inicia_trajetoria_otima(estado_inicial, estado_final)
+
+    print u'\n\n Política Ótima(Conjunto de estados) \n'
+    arquivo.write('\n\n Política Ótima(Conjunto de estados) \n')
+    arquivo.write(
+        '[' + ' '.join([str(tr.endereco) for tr in trajetoria]) + ']')
+    print [tr.endereco for tr in trajetoria]
+
+    arquivo.write('\n\n')
+    print '\n'
+    for areas in mapa:
+        area = ''
+        for estado in areas:
+            if estado in trajetoria:
+                area += 'x  '
+            elif estado.razao == -100:
+                area += 'O  '
+            else:
+                if len(str(estado.endereco)) == 2:
+                    area += '%s ' % estado.endereco
+                else:
+                    area += '%s  ' % estado.endereco
+        print area + '\n'
+        arquivo.write(area + '\n')
+    print '\n'
+    arquivo.close()
 
 main()
